@@ -1,0 +1,8 @@
+replicaCount: 3
+
+image:
+  repository: "antonmgn/python-web"
+  pullPolicy: IfNotPresent
+  tag: "1.0"
+
+author: "Anton Sokolov"

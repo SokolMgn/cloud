@@ -1,0 +1,47 @@
+---
+- name: create new user copy key
+  hosts: nodes
+  gather_facts: false
+  become: true
+  vars:
+    username: cloudru
+    password: cloudpass
+  tasks:
+    # Создает нового пользователя с паролем
+    - name: add user 
+      ansible.builtin.user:
+        name: "{{ username }}"
+        password: "{{ password | password_hash('sha512') }}"
+    
+    # Разрешает на хосте авторизацию через ssh по ключу и запрещает логин по ssh от пользователя root 
+    - name: pubkey yes and deny root login
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        line: "{{ item }}"
+        loop:
+          - "PubkeyAuthentication yes"
+          - "PermitRootLogin no"
+      
+    # Перезапуск службы ssh
+    - name: restart sshd
+      ansible.builtin.systemd:
+        name: sshd  
+        state: restarted
+    
+    # Создаем скрытую директорию .ssh/    
+    - name: Create a directory if it does not exist
+      ansible.builtin.file:
+        path: "/home/{{ username }}/.ssh/"
+        state: directory
+        owner: "{{ username }}"
+        group: "{{ username }}"
+        mode: '0700'
+    
+    # Копируем публичный ключ на хост в директроию /home/cloudru/.ssh/
+    - name: Copy SSH Public Key
+      ansible.builtin.copy:
+        src: authorized_keys
+        dest: "/home/{{ username }}/.ssh/"
+        owner: "{{ username }}"
+        group: "{{ username }}"
+        mode: '0600'

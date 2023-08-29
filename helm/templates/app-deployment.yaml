@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/name: mywebserver
+  name: mywebserver-deploy
+  namespace: webservers
+spec:
+  selector:
+    matchLabels:
+      app: mywebserver
+  replicas: {{ .Values.replicaCount }}
+  template:
+    metadata:
+      labels:
+        app: mywebserver
+    spec:
+      containers:
+      - name: mywebserver
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        ports:
+        - containerPort: 8000
+          protocol: TCP
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "[ -f /proc/1/exe ] && readlink -f /proc/1/exe | grep python"
+          initialDelaySeconds: 15
+          periodSeconds: 7
+        readinessProbe:
+          httpGet:
+            scheme: HTTP
+            path: /hostname
+            port: 8000
+          initialDelaySeconds: 15
+          periodSeconds: 7
+        env:
+        - name: UUID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.uid
+        - name: AUTHOR
+          value: "{{ .Values.author }}"
